@@ -33,6 +33,16 @@ def handle_command(cmd: str, payload: dict):
         _, dfw = total_and_weights(dfv)
         print_assets_full(dfw)
 
+    elif cmd == "reset":
+        confirm = input("⚠️ Are you sure you want to delete all portfolio data? (y/n): ")
+        if confirm.lower().startswith("y"):
+            _store.df = _store.df.iloc[0:0]
+            if os.path.exists("assets.csv"):
+                os.remove("assets.csv")
+            print("✅ Portfolio has been reset.")
+        else:
+            print("❌ Reset cancelled.")
+
     elif cmd == "show":
         dfv = with_current_values(_store.df)
         total, dfw = total_and_weights(dfv)

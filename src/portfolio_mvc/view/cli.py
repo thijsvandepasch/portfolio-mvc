@@ -53,4 +53,9 @@ def run_cli(controller_callback):
     ):
         controller_callback("simulate", {"years": years, "paths": paths, "freq": freq, "plot": plot})
 
+    @app.command("reset")
+    def reset():
+
+        controller_callback("reset", {})
+
     app()
