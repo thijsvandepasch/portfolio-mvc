@@ -84,10 +84,11 @@ def handle_command(cmd: str, payload: dict):
                 import matplotlib.pyplot as plt
                 import numpy as np
                 plt.figure()
-                plt.hist(res["samples"], bins=60)
+                plt.hist(res["samples"], bins=60, range=(0, 1_000_000))
                 plt.title(f"Ending Value Distribution ({paths} paths, {years}y, {freq})")
                 plt.xlabel("Ending value")
                 plt.ylabel("Frequency")
+                plt.ticklabel_format(style='plain', axis='x')
                 plt.show()
             except Exception:
                 pass
