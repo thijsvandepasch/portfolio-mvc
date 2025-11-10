@@ -1,57 +1,52 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import pandas as pd
 import os
 
 @dataclass
 class Asset:
     symbol: str
-    value: float
+    sector: str
+    asset_class: str
+    quantity: float
+    purchase_price: float
 
 class AssetStore:
-    """
-    Holds asset data, computes weights, and saves/loads to disk.
-    """
+    CSV_COLUMNS = ["symbol", "sector", "asset_class", "quantity", "purchase_price"]
+
     def __init__(self, assets: list[Asset] | None = None):
         assets = assets or []
-        self.df = pd.DataFrame([a.__dict__ for a in assets], columns=["symbol", "value"])
+        self.df = pd.DataFrame([asdict(a) for a in assets], columns=self.CSV_COLUMNS)
 
-    def add_asset(self, symbol: str, value: float) -> None:
-        """
-        Add a new asset to the portfolio.
-        """
-        self.df.loc[len(self.df)] = {"symbol": symbol, "value": float(value)}
-
-    def weights(self) -> pd.DataFrame:
-        """
-        Calculate weights for all assets (value / total).
-        """
-        total = float(self.df["value"].sum()) if len(self.df) else 0.0
-        self.df["weight"] = (self.df["value"] / total) if total else 0.0
-        return self.df[["symbol", "value", "weight"]].copy()
-
-    # --- Persistence ---
-    def save_to_csv(self, filepath: str = "assets.csv") -> None:
-        """
-        Save portfolio to CSV file.
-        """
-        self.df.to_csv(filepath, index=False)
-
-    def load_from_csv(self, filepath: str = "assets.csv") -> None:
-        """
-        Load portfolio from CSV if it exists.
-        """
-        if os.path.exists(filepath):
-            self.df = pd.read_csv(filepath)
-        else:
-            self.df = pd.DataFrame(columns=["symbol", "value"])
+    def add_asset(self, symbol: str, sector: str, asset_class: str, quantity: float, purchase_price: float) -> None:
+            self.df.loc[len(self.df)] = {
+                "symbol": symbol.upper(),
+                "sector": sector,
+                "asset_class": asset_class,
+                "quantity": float(quantity),
+                "purchase_price": float(purchase_price),
+            }
 
     def remove_asset(self, symbol: str) -> bool:
-        """
-        Remove an asset by its symbol.
-        Returns True if removed, False if symbol not found.
-        """
+        symbol = symbol.upper()
         if symbol in self.df["symbol"].values:
             self.df = self.df[self.df["symbol"] != symbol].reset_index(drop=True)
             return True
+        return False
+
+    def transaction_values(self) -> pd.Series:
+        if self.df.empty:
+            return pd.Series(dtype=float)
+        return self.df["quantity"] * self.df["purchase_price"]
+
+    def save_to_csv(self, filepath: str = "assets.csv") -> None:
+        self.df.to_csv(filepath, index=False)
+
+    def load_from_csv(self, filepath: str = "assets.csv") -> None:
+        if os.path.exists(filepath):
+            loaded = pd.read_csv(filepath)
+            for col in self.CSV_COLUMNS:
+                if col not in loaded.columns:
+                    loaded[col] = pd.NA
+            self.df = loaded[self.CSV_COLUMNS].copy()
         else:
-            return False
+            self.df = pd.DataFrame(columns=self.CSV_COLUMNS)
