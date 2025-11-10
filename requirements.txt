@@ -2,4 +2,5 @@ pandas
 matplotlib
 rich
 typer[all]
-
+yfinance
+scipy
