@@ -38,7 +38,7 @@ def run_cli(controller_callback):
         start: Optional[str] = typer.Option(None, help="YYYY-MM-DD"),
         end: Optional[str] = typer.Option(None, help="YYYY-MM-DD"),
         interval: str = typer.Option("1d", help="1d|1wk|1mo"),
-        combine: bool = typer.Option(True, help="Plot on one chart"),
+        combine: bool = typer.Option(True, "--combine/--no-combine", help="Plot on one chart"),
     ):
         controller_callback("prices", {
             "symbols": symbols, "start": start, "end": end, "interval": interval, "combine": combine
@@ -55,7 +55,19 @@ def run_cli(controller_callback):
 
     @app.command("reset")
     def reset():
-
         controller_callback("reset", {})
+
+    @app.command("performance")
+    def performance(
+        start: Optional[str] = typer.Option(None, help="YYYY-MM-DD"),
+        end: Optional[str] = typer.Option(None, help="YYYY-MM-DD"),
+        interval: str = typer.Option("1d", help="1d|1wk|1mo"),
+        freq: Optional[str] = typer.Option(None, help="ME (month-end) or YE (year-end)"),
+        plot: bool = typer.Option(True, help="Show a chart of total portfolio value"),
+    ):
+        controller_callback(
+            "performance",
+            {"start": start, "end": end, "interval": interval, "freq": freq, "plot": plot},
+        )
 
     app()

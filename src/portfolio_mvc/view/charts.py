@@ -59,3 +59,13 @@ def plot_price_series(history: dict[str, pd.DataFrame], combine: bool = True) ->
         plt.xlabel("Date")
         plt.ylabel("Price")
         plt.show()
+
+def plot_portfolio_series(series: pd.Series, title: str = "Portfolio Value Over Time") -> None:
+    if series is None or series.empty:
+        return
+    plt.figure()
+    series.plot()
+    plt.title(title)
+    plt.xlabel("Date")
+    plt.ylabel("Portfolio Value")
+    plt.show()

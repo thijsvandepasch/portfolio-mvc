@@ -5,6 +5,8 @@ from portfolio_mvc.model.simulate import simulate_portfolio_paths
 from portfolio_mvc.view.tables import print_assets_full, print_grouped, print_total
 from portfolio_mvc.view.charts import plot_weights, plot_price_series
 from portfolio_mvc.view.cli import run_cli
+from portfolio_mvc.model.metrics import portfolio_value_series
+from portfolio_mvc.view.charts import plot_portfolio_series
 import os
 
 _store = AssetStore()
@@ -93,8 +95,36 @@ def handle_command(cmd: str, payload: dict):
             except Exception:
                 pass
 
-    else:
-        print("Unknown command:", cmd)
+    elif cmd == "performance":
+        start = payload.get("start")
+        end = payload.get("end")
+        interval = payload.get("interval", "1d")
+        freq = payload.get("freq")
+        do_plot = bool(payload.get("plot", True))
+
+        if _store.df.empty:
+            print("No assets in portfolio.")
+            return
+
+        series = portfolio_value_series(_store.df, start=start, end=end, interval=interval, freq=freq)
+        if series.empty:
+            print("No historical data available for current holdings and date range.")
+            return
+
+        start_dt, end_dt = series.index[0].date(), series.index[-1].date()
+        v0, vT = float(series.iloc[0]), float(series.iloc[-1])
+        ret = (vT / v0 - 1.0) if v0 != 0 else float("nan")
+        print(f"Period: {start_dt} → {end_dt}")
+        print(f"Start value: {v0:,.2f}")
+        print(f"End value:   {vT:,.2f}")
+        print(f"Return:      {ret*100:,.2f}%")
+
+        if do_plot:
+            ttl = f"Portfolio Value Over Time ({freq or 'daily'})"
+            plot_portfolio_series(series, title=ttl)
+
+        else:
+            print("Unknown command:", cmd)
 
 def main():
     run_cli(handle_command)
