@@ -28,6 +28,7 @@ It allows you to:
 
 ✅ **Extra Functions**
 - You can see how the **total portfolio value** evolved historically.
+- Compute **annualized return**, **volatility**, **Sharpe ratio**, and **max drawdown** for your current portfolio. Optionally compare against a **benchmark** (e.g., `^GSPC` for S&P 500) and visualize the **drawdown curve**.
 
 
 ---
@@ -183,6 +184,26 @@ You can now analyze how your **total portfolio value** evolved historically usin
 
 ```bash
 python -m portfolio_mvc.controller.app performance --start 2018-01-01 --freq ME
+```
+
+---
+
+
+
+### 🟠 6) (Extra) Portfolio Return & Risk Metrics
+
+Compute **annualized return**, **volatility**, **Sharpe ratio**, and **max drawdown** for your current portfolio. Optionally compare against a **benchmark** (e.g., `^GSPC` for S&P 500) and visualize the **drawdown curve**.
+
+
+```bash
+# Portfolio metrics with month-end aggregation and 2% risk-free rate
+python -m portfolio_mvc.controller.app metrics --start 2018-01-01 --freq ME --rf 0.02
+
+# Compare to S&P 500
+python -m portfolio_mvc.controller.app metrics --start 2018-01-01 --freq ME --rf 0.02 --benchmark ^GSPC
+
+# Skip drawdown plot
+python -m portfolio_mvc.controller.app metrics --start 2018-01-01 --freq ME --no-plot-drawdown
 ```
 
 ---
