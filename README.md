@@ -26,6 +26,10 @@ It allows you to:
 - Run Monte Carlo simulations of portfolio growth  
 - Visualize results via pie charts and histograms  
 
+✅ **Extra Functions**
+- You can see how the **total portfolio value** evolved historically.
+
+
 ---
 
 ## 🧩 Project Structure
@@ -171,6 +175,18 @@ python -m portfolio_mvc.controller.app reset
 ```
 
 ---
+
+
+### 🟣 6) (Extra) Portfolio Performance Over Time
+
+You can now analyze how your **total portfolio value** evolved historically using live market data.  
+
+```bash
+python -m portfolio_mvc.controller.app performance --start 2018-01-01 --freq ME
+```
+
+---
+
 
 ## 🧪 Example Session
 
