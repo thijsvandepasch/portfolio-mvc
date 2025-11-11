@@ -70,4 +70,27 @@ def run_cli(controller_callback):
             {"start": start, "end": end, "interval": interval, "freq": freq, "plot": plot},
         )
 
+    @app.command("metrics")
+    def metrics(
+        start: Optional[str] = typer.Option(None, help="YYYY-MM-DD"),
+        end: Optional[str] = typer.Option(None, help="YYYY-MM-DD"),
+        interval: str = typer.Option("1d", help="1d|1wk|1mo"),
+        freq: Optional[str] = typer.Option("ME", help="ME (month-end) or YE (year-end)"),
+        rf: float = typer.Option(0.0, help="Risk-free rate (annual, decimal, e.g., 0.02)"),
+        benchmark: Optional[str] = typer.Option(None, help="Benchmark ticker, e.g., ^GSPC"),
+        plot_drawdown: bool = typer.Option(True, help="Plot drawdown chart"),
+    ):
+        controller_callback(
+            "metrics",
+            {
+                "start": start,
+                "end": end,
+                "interval": interval,
+                "freq": freq,
+                "rf": rf,
+                "benchmark": benchmark,
+                "plot_drawdown": plot_drawdown,
+            },
+        )
+
     app()

@@ -69,3 +69,16 @@ def plot_portfolio_series(series: pd.Series, title: str = "Portfolio Value Over 
     plt.xlabel("Date")
     plt.ylabel("Portfolio Value")
     plt.show()
+
+def plot_drawdown(series: pd.Series, title: str = "Portfolio Drawdown") -> None:
+    s = series.dropna().astype(float)
+    if s.empty:
+        return
+    roll_max = s.cummax()
+    dd = (s / roll_max) - 1.0
+    plt.figure()
+    dd.plot()
+    plt.title(title)
+    plt.xlabel("Date")
+    plt.ylabel("Drawdown")
+    plt.show()

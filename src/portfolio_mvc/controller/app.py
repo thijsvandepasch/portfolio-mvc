@@ -5,8 +5,9 @@ from portfolio_mvc.model.simulate import simulate_portfolio_paths
 from portfolio_mvc.view.tables import print_assets_full, print_grouped, print_total
 from portfolio_mvc.view.charts import plot_weights, plot_price_series
 from portfolio_mvc.view.cli import run_cli
-from portfolio_mvc.model.metrics import portfolio_value_series
-from portfolio_mvc.view.charts import plot_portfolio_series
+from portfolio_mvc.model.metrics import portfolio_value_series, portfolio_metrics_from_series, benchmark_series, _periods_per_year
+from portfolio_mvc.view.charts import plot_portfolio_series, plot_drawdown
+import pandas as pd
 import os
 
 _store = AssetStore()
@@ -123,8 +124,57 @@ def handle_command(cmd: str, payload: dict):
             ttl = f"Portfolio Value Over Time ({freq or 'daily'})"
             plot_portfolio_series(series, title=ttl)
 
-        else:
-            print("Unknown command:", cmd)
+    elif cmd == "metrics":
+        if _store.df.empty:
+            print("No assets in portfolio.")
+            return
+
+        start = payload.get("start")
+        end = payload.get("end")
+        interval = payload.get("interval", "1d")
+        freq = payload.get("freq")
+        rf = float(payload.get("rf", 0.0))
+        bench = payload.get("benchmark")
+        plot_dd = bool(payload.get("plot_drawdown", True))
+
+        series = portfolio_value_series(_store.df, start=start, end=end, interval=interval, freq=freq)
+        if series.empty:
+            print("No historical data available for current holdings and date range.")
+            return
+
+        ppy = _periods_per_year(freq, interval)
+        port = portfolio_metrics_from_series(series, periods_per_year=ppy, rf=rf)
+
+        print("\nPortfolio metrics")
+        print(f"Period:       {port['start'].date()} → {port['end'].date()}")
+        print(f"Start value:  {port['start_value']:,.2f}")
+        print(f"End value:    {port['end_value']:,.2f}")
+        print(f"Total return: {port['total_return']*100:,.2f}%")
+        print(f"Ann. return:  {port['ann_return']*100:,.2f}%")
+        print(f"Ann. vol:     {port['ann_vol']*100:,.2f}%")
+        print(f"Sharpe({rf:.2%} rf): {port['sharpe']:.2f}")
+        print(f"Max drawdown: {port['max_drawdown']*100:,.2f}%")
+
+        if bench:
+            bser = benchmark_series(bench, start=start, end=end, interval=interval, freq=freq)
+            # align to same dates
+            both = pd.concat({"portfolio": series, bench: bser}, axis=1).dropna()
+            if not both.empty:
+                p_port = portfolio_metrics_from_series(both["portfolio"], periods_per_year=ppy, rf=rf)
+                p_bench = portfolio_metrics_from_series(both[bench], periods_per_year=ppy, rf=rf)
+                print(f"\nBenchmark: {bench}")
+                print(f"Period (aligned): {both.index[0].date()} → {both.index[-1].date()}")
+                print(f"Portfolio  AnnRet: {p_port['ann_return']*100:,.2f}%  AnnVol: {p_port['ann_vol']*100:,.2f}%  Sharpe: {p_port['sharpe']:.2f}  MDD: {p_port['max_drawdown']*100:,.2f}%")
+                print(f"{bench:10} AnnRet: {p_bench['ann_return']*100:,.2f}%  AnnVol: {p_bench['ann_vol']*100:,.2f}%  Sharpe: {p_bench['sharpe']:.2f}  MDD: {p_bench['max_drawdown']*100:,.2f}%")
+            else:
+                print(f"\nBenchmark {bench} has no overlapping data with portfolio for the chosen range.")
+
+        if plot_dd:
+            ttl = f"Portfolio Drawdown ({freq or 'daily'})"
+            plot_drawdown(series, title=ttl)
+
+    else:
+        print("Unknown command:", cmd)
 
 def main():
     run_cli(handle_command)

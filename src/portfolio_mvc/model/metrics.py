@@ -90,3 +90,72 @@ def portfolio_value_series(
         values = values.resample(rule).last().dropna()
 
     return values.dropna()
+
+def _periods_per_year(freq: Optional[str], interval: str) -> float:
+    if freq:
+        f = freq.upper()
+        if f.startswith("Y"):
+            return 1.0
+        if f.startswith("M"):
+            return 12.0
+    if interval == "1wk":
+        return 52.0
+    if interval == "1mo":
+        return 12.0
+    return 252.0 
+
+def _log_returns(series: pd.Series) -> pd.Series:
+    series = series.dropna()
+    if series.shape[0] < 2:
+        return pd.Series(dtype="float64")
+    return np.log(series / series.shift(1)).dropna()
+
+def _annualized_metrics_from_log_returns(r: pd.Series, periods_per_year: float, rf: float = 0.0) -> dict:
+    if r is None or r.empty:
+        return {"ann_return": np.nan, "ann_vol": np.nan, "sharpe": np.nan}
+    mu_log = r.mean()
+    sig = r.std(ddof=1)
+    ann_log_return = mu_log * periods_per_year
+    ann_return = float(np.exp(ann_log_return) - 1.0)
+    ann_vol = float(sig * np.sqrt(periods_per_year))
+    if ann_vol == 0 or np.isnan(ann_vol):
+        sharpe = np.nan
+    else:
+        sharpe = float((ann_return - rf) / ann_vol)
+    return {"ann_return": ann_return, "ann_vol": ann_vol, "sharpe": sharpe}
+
+def _max_drawdown(series: pd.Series) -> float:
+    s = series.dropna().astype(float)
+    if s.empty:
+        return np.nan
+    roll_max = s.cummax()
+    dd = (s / roll_max) - 1.0
+    return float(dd.min())
+
+def benchmark_series(symbol: str, start: Optional[str], end: Optional[str], interval: str, freq: Optional[str]) -> pd.Series:
+    hist = get_history([symbol], start=start, end=end, interval=interval)
+    df = hist.get(symbol.upper(), pd.DataFrame())
+    s = _pick_price_series(df)
+    if s is None or s.empty:
+        return pd.Series(dtype="float64")
+    s = s.sort_index().dropna()
+    if freq:
+        f = freq.upper()
+        rule = "ME" if f.startswith("M") else "YE"
+        s = s.resample(rule).last().dropna()
+    return s
+
+def portfolio_metrics_from_series(series: pd.Series, periods_per_year: float, rf: float = 0.0) -> dict:
+    r = _log_returns(series)
+    stats = _annualized_metrics_from_log_returns(r, periods_per_year, rf=rf)
+    mdd = _max_drawdown(series)
+    out = {
+        "start": series.index[0] if not series.empty else None,
+        "end": series.index[-1] if not series.empty else None,
+        "start_value": float(series.iloc[0]) if not series.empty else np.nan,
+        "end_value": float(series.iloc[-1]) if not series.empty else np.nan,
+        "total_return": float(series.iloc[-1] / series.iloc[0] - 1.0) if series.size >= 2 else np.nan,
+        "max_drawdown": mdd,
+    }
+    out.update(stats)
+    return out
